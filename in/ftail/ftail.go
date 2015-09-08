@@ -251,6 +251,7 @@ func (f *Ftail) getHeadHash(fname string, getLength int64) (hash string, length 
 	defer readFile.Close()
 	tee := io.TeeReader(io.LimitReader(readFile, getLength), f.headHash)
 	head, err = ioutil.ReadAll(tee)
+	length = int64(len(head))
 	//length, err = io.CopyN(f.headHash, readFile, getLength)
 	switch err {
 	case nil:
