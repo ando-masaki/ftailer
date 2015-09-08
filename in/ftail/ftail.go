@@ -190,9 +190,10 @@ func (f *Ftail) lineNotifyAction(ctx context.Context, line *tail.Line) error {
 		f.Pos.Offset = line.Offset
 		f.Pos.HeadHash, f.Pos.HashLength, f.Pos.Head, err = f.getHeadHash(f.Pos.Name, f.MaxHeadHashSize)
 		if err != nil {
-			log.Printf("getHeadHash err:%s", err)
+			log.Printf("NewFileNotify getHeadHash err:%s", err)
 			return err
 		}
+		log.Printf("NewFileNotify: %v", f.Pos)
 	}
 	return nil
 }
@@ -219,7 +220,9 @@ func (f *Ftail) Write(line *tail.Line) (err error) {
 	f.Pos.CreateAt = line.OpenTime
 	f.Pos.Offset = line.Offset
 	if f.Pos.HashLength < f.MaxHeadHashSize {
-		f.addHash(line.Text)
+		if err = f.addHash(line.Text); err != nil {
+			return err
+		}
 	}
 	_, err = f.Writer.Write(line.Text)
 	return err
