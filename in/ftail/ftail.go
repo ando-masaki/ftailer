@@ -231,6 +231,7 @@ func (f *Ftail) Flush() error {
 	}
 	f.Writer.Close()
 	err := f.rec.Put(core.Record{Time: f.lastTime, Data: f.buf.Bytes()}, f.Pos)
+	log.Printf("rec.Put: %v", f.Pos)
 	f.buf.Reset()
 	f.Reset(&f.buf)
 	if err != nil {
