@@ -17,11 +17,12 @@ type Position struct {
 	CreateAt   time.Time
 	Offset     int64
 	HeadHash   string
+	Head       []byte
 	HashLength int64
 }
 
 func (p Position) String() string {
-	return fmt.Sprintf("Name:%s, CreateAt:%s, Offset:%d, HeadHash:%s, hashLen:%d", p.Name, p.CreateAt, p.Offset, p.HeadHash, p.HashLength)
+	return fmt.Sprintf("Name:%s, CreateAt:%s, Offset:%d, HeadHash:%s, hashLen:%d, head:%s", p.Name, p.CreateAt, p.Offset, p.HeadHash, p.HashLength, p.Head)
 
 }
 
@@ -43,6 +44,9 @@ func (p Position) Put(tx *bolt.Tx) error {
 		return err
 	}
 	if err = b.Put([]byte("HeadHash"), []byte(p.HeadHash)); err != nil {
+		return err
+	}
+	if err = b.Put([]byte("Head"), p.Head); err != nil {
 		return err
 	}
 	if err = b.Put([]byte("HashLength"), []byte(strconv.FormatInt(p.HashLength, 16))); err != nil {
@@ -74,6 +78,9 @@ func GetPositon(tx *bolt.Tx) (Position, error) {
 	}
 	if value = b.Get([]byte("HeadHash")); value != nil {
 		p.HeadHash = string(value)
+	}
+	if value = b.Get([]byte("Head")); value != nil {
+		p.Head = value
 	}
 	if value = b.Get([]byte("HashLength")); value != nil {
 		p.HashLength, _ = strconv.ParseInt(string(value), 16, 64)

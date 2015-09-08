@@ -6,6 +6,7 @@ import (
 	"hash"
 	"hash/fnv"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -106,7 +107,7 @@ func Start(ctx context.Context, c Config) error {
 	log.Printf("f.Pos: %s", f.Pos)
 
 	if f.MaxHeadHashSize != 0 && f.Pos.Name != "" {
-		hash, length, err := f.getHeadHash(f.Pos.Name, f.Pos.HashLength)
+		hash, length, head, err := f.getHeadHash(f.Pos.Name, f.Pos.HashLength)
 		if err != nil {
 			log.Printf("getHeadHash err:%s", err)
 		} else {
@@ -114,8 +115,11 @@ func Start(ctx context.Context, c Config) error {
 				log.Printf("match headHash: %s", f.Pos)
 				f.Location = &tail.SeekInfo{Offset: f.Pos.Offset}
 			} else {
+				log.Printf("not match headHash old: %s", f.Pos)
 				f.Pos.HeadHash = hash
 				f.Pos.HashLength = length
+				f.Pos.Head = head
+				log.Printf("not match headHash new: %s", f.Pos)
 			}
 		}
 	} else {
@@ -184,7 +188,9 @@ func (f *Ftail) lineNotifyAction(ctx context.Context, line *tail.Line) error {
 		f.Pos.Name = line.Filename
 		f.Pos.CreateAt = line.OpenTime
 		f.Pos.Offset = line.Offset
-		f.Pos.HeadHash, f.Pos.HashLength, err = f.getHeadHash(f.Pos.Name, f.MaxHeadHashSize)
+		var head []byte
+		f.Pos.HeadHash, f.Pos.HashLength, head, err = f.getHeadHash(f.Pos.Name, f.MaxHeadHashSize)
+		f.Pos.Head = head
 		if err != nil {
 			log.Printf("getHeadHash err:%s", err)
 			return err
@@ -233,9 +239,9 @@ func (f *Ftail) Flush() error {
 	return err
 }
 
-func (f *Ftail) getHeadHash(fname string, getLength int64) (hash string, length int64, err error) {
+func (f *Ftail) getHeadHash(fname string, getLength int64) (hash string, length int64, head []byte, err error) {
 	if f.MaxHeadHashSize == 0 || f.Pos.Name == "" {
-		return "", 0, nil
+		return "", 0, []byte{}, nil
 	}
 	var readFile *os.File
 	readFile, err = os.Open(fname)
@@ -243,7 +249,9 @@ func (f *Ftail) getHeadHash(fname string, getLength int64) (hash string, length 
 		return
 	}
 	defer readFile.Close()
-	length, err = io.CopyN(f.headHash, readFile, getLength)
+	tee := io.TeeReader(io.LimitReader(readFile, getLength), f.headHash)
+	head, err = ioutil.ReadAll(tee)
+	//length, err = io.CopyN(f.headHash, readFile, getLength)
 	switch err {
 	case nil:
 	case io.EOF:
