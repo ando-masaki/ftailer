@@ -188,9 +188,7 @@ func (f *Ftail) lineNotifyAction(ctx context.Context, line *tail.Line) error {
 		f.Pos.Name = line.Filename
 		f.Pos.CreateAt = line.OpenTime
 		f.Pos.Offset = line.Offset
-		var head []byte
-		f.Pos.HeadHash, f.Pos.HashLength, head, err = f.getHeadHash(f.Pos.Name, f.MaxHeadHashSize)
-		f.Pos.Head = head
+		f.Pos.HeadHash, f.Pos.HashLength, f.Pos.Head, err = f.getHeadHash(f.Pos.Name, f.MaxHeadHashSize)
 		if err != nil {
 			log.Printf("getHeadHash err:%s", err)
 			return err
@@ -208,8 +206,10 @@ func (f *Ftail) addHash(line []byte) error {
 	if err != nil {
 		return err
 	}
+	f.Pos.Head = append(f.Pos.Head, line...)
 	f.Pos.HeadHash = strconv.FormatUint(f.headHash.Sum64(), 16)
 	f.Pos.HashLength += int64(written)
+	log.Printf("addHash %s", f.Pos)
 	return nil
 }
 
