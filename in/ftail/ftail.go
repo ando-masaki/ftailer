@@ -253,6 +253,7 @@ func (f *Ftail) getHeadHash(fname string, getLength int64) (hash string, length 
 		return
 	}
 	defer readFile.Close()
+	f.headHash = fnv.New64()
 	tee := io.TeeReader(io.LimitReader(readFile, getLength), f.headHash)
 	head, err = ioutil.ReadAll(tee)
 	length = int64(len(head))
